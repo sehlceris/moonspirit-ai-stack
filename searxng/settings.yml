@@ -1,0 +1,31 @@
+# SearXNG Settings
+# Use default settings and override only what's needed
+use_default_settings: true
+
+general:
+  instance_name: "AI Stack Search"
+  debug: false
+  enable_metrics: false
+
+server:
+  secret_key: "c19ef2d384d326a0f96f3469669f62378fe6b8ac6386503b9d5a711fc20ccd54"
+  limiter: false
+  image_proxy: true
+
+search:
+  safe_search: 0
+  formats:
+    - html
+    - json
+    - csv
+    - rss
+
+engines:
+  - name: google
+    engine: google
+    shortcut: gg
+    use_mobile_ui: false
+  - name: duckduckgo
+    engine: duckduckgo
+    shortcut: ddg
+    display_error_messages: true

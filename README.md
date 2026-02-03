@@ -14,7 +14,7 @@ Cloudflare (SSL termination)
 ┌─────────────────────────────────────────────────────────┐
 │  Docker Compose Stack (in VM on Apple Silicon)          │
 │                                                         │
-│   cloudflared ──► traefik ──┬──► openwebui             │
+│   cloudflared ──► traefik ──┬──► openwebui ◄── searxng │
 │                             │                           │
 │                             └──► lmstudio-proxy ──────┐ │
 └─────────────────────────────────────────────────────────┘
@@ -30,6 +30,7 @@ Cloudflare (SSL termination)
 | **Traefik** | Reverse proxy with basic auth | http://traefik.localhost:8080 | - |
 | **OpenWebUI** | Web interface for LLMs | http://openwebui.localhost | https://openwebui.chrislee.dev |
 | **LM Studio API** | Direct API access to LLM | http://lmstudio.localhost | https://lmstudio.chrislee.dev |
+| **SearXNG** | Internal search engine for OpenWebUI | - (internal only) | - |
 
 ## Prerequisites
 
@@ -171,6 +172,8 @@ aistack/
 │   └── config.yml          # Reference config (not used with token)
 ├── openwebui/
 │   └── data/               # OpenWebUI persistent data (created on first run)
+├── searxng/
+│   └── settings.yml        # SearXNG configuration
 └── lmstudio-proxy/
     └── nginx.conf          # Nginx config for proxying to host LLM
 ```
@@ -257,6 +260,19 @@ Once you have API tokens set up for your services (e.g., OpenWebUI's built-in au
    ```
 
 External access will now bypass basic auth, relying solely on each service's own authentication.
+
+## Web Search with SearXNG
+
+SearXNG is included as an internal search engine for OpenWebUI. It's pre-configured and requires no external access.
+
+**To use web search in OpenWebUI:**
+
+1. Open a chat in OpenWebUI
+2. Click the **+** button in the message input area
+3. Enable **Web Search**
+4. Your queries will now include web search results
+
+Alternatively, enable it globally in **Settings → Documents → Web Search**.
 
 ## Security Notes
 

@@ -48,7 +48,12 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY:-sk-no-key-required}
       - WEBUI_AUTH=${OPENWEBUI_AUTH:-true}
       - WEBUI_NAME=${OPENWEBUI_NAME:-AI Stack}
+      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY:-acfb1937b869a63b4e3e2bba09c8e8d81823f54f21efd3b06d4fd3215d279bea}
       - ENABLE_OLLAMA_API=false
+      # Web search via SearXNG (internal)
+      - ENABLE_RAG_WEB_SEARCH=true
+      - RAG_WEB_SEARCH_ENGINE=searxng
+      - SEARXNG_QUERY_URL=http://searxng:8080/search?q=<query>&format=json
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
@@ -66,6 +71,17 @@ services:
       - "traefik.http.routers.openwebui-local.service=openwebui"
       # Service definition
       - "traefik.http.services.openwebui.loadbalancer.server.port=8080"
+
+  # SearXNG - Internal search engine for OpenWebUI
+  searxng:
+    image: searxng/searxng:latest
+    container_name: searxng
+    restart: unless-stopped
+    volumes:
+      - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
+    networks:
+      - web
+    # No Traefik labels - internal only, accessed by OpenWebUI via Docker network
 
   # LM Studio API Proxy - exposes host LLM through Traefik
   lmstudio-proxy:
