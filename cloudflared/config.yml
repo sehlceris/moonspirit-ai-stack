@@ -8,6 +8,7 @@
 # 5. In the tunnel's Public Hostname settings, add:
 #    - openwebui.chrislee.dev -> http://traefik:80
 #    - lmstudio.chrislee.dev -> http://traefik:80
+#    - librechat.chrislee.dev -> http://traefik:80
 
 tunnel: 28a19b69-5144-410c-a30a-ee361bc3306d
 credentials-file: /etc/cloudflared/credentials.json
@@ -21,6 +22,12 @@ ingress:
 
   # Route lmstudio.chrislee.dev to Traefik
   - hostname: lmstudio.chrislee.dev
+    service: http://traefik:80
+    originRequest:
+      noTLSVerify: true
+
+  # Route librechat.chrislee.dev to Traefik
+  - hostname: librechat.chrislee.dev
     service: http://traefik:80
     originRequest:
       noTLSVerify: true
