@@ -9,7 +9,7 @@
 #    - openwebui.chrislee.dev -> http://traefik:80
 #    - lmstudio.chrislee.dev -> http://traefik:80
 
-tunnel: your-tunnel-id-here
+tunnel: 28a19b69-5144-410c-a30a-ee361bc3306d
 credentials-file: /etc/cloudflared/credentials.json
 
 ingress:

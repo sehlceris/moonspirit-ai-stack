@@ -7,7 +7,7 @@ http:
         # Users are loaded from environment variable in docker-compose
         # Format: username:hashed_password (use htpasswd -nB to generate)
         users:
-          - "admin:$2y$05$REPLACE_WITH_YOUR_HASHED_PASSWORD"
+          - "admin:$2y$05$56HcnS18VLf2IVvbiik5fuKlmeOMpAcOJW8cDnUuIHku0McyC7s0O"
         # Realm shown in the browser auth dialog
         realm: "AI Stack"
         # Remove auth header before forwarding to services

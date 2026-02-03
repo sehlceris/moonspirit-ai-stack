@@ -48,10 +48,10 @@ Generate a hashed password for basic authentication:
 htpasswd -nB admin
 
 # Or using Docker:
-docker run --rm httpd:alpine htpasswd -nB admin
+docker run --rm httpd:alpine htpasswd -nbB admin mypassword
 ```
 
-You'll be prompted for a password. Copy the entire output (e.g., `admin:$2y$05$...`).
+Copy the entire output (e.g., `admin:$2y$05$...`).
 
 ### 2. Create Cloudflare Tunnel
 
