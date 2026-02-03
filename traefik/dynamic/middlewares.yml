@@ -1,0 +1,20 @@
+# Traefik Dynamic Configuration - Middlewares
+http:
+  middlewares:
+    # Basic Authentication middleware for external access
+    auth:
+      basicAuth:
+        # Users are loaded from environment variable in docker-compose
+        # Format: username:hashed_password (use htpasswd -nB to generate)
+        users:
+          - "admin:$2y$05$REPLACE_WITH_YOUR_HASHED_PASSWORD"
+        # Realm shown in the browser auth dialog
+        realm: "AI Stack"
+        # Remove auth header before forwarding to services
+        removeHeader: true
+
+    # No-auth middleware (passthrough) - use when relying on service-level auth
+    # To disable basic auth, set EXTERNAL_MIDDLEWARES=noauth@file in .env
+    noauth:
+      chain:
+        middlewares: []

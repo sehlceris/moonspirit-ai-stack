@@ -1,0 +1,97 @@
+services:
+  # Traefik Reverse Proxy
+  traefik:
+    image: traefik:v3.2
+    container_name: traefik
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "8080:8080"  # Dashboard (local access only)
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      # Dashboard - local access only (no auth needed for local)
+      - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.localhost`)"
+      - "traefik.http.routers.traefik-dashboard.service=api@internal"
+      - "traefik.http.routers.traefik-dashboard.entrypoints=web"
+
+  # Cloudflare Tunnel
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - web
+    depends_on:
+      - traefik
+
+  # OpenWebUI - Web interface for LLMs
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: openwebui
+    restart: unless-stopped
+    volumes:
+      # Persist all data: SQLite DB (users, chats, settings), uploads, cache
+      - ./openwebui/data:/app/backend/data
+    environment:
+      # Explicitly set data directory (matches volume mount)
+      - DATA_DIR=/app/backend/data
+      - OPENAI_API_BASE_URL=http://host.docker.internal:1234/v1
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-sk-no-key-required}
+      - WEBUI_AUTH=${OPENWEBUI_AUTH:-true}
+      - WEBUI_NAME=${OPENWEBUI_NAME:-AI Stack}
+      - ENABLE_OLLAMA_API=false
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      # External route (via Cloudflare) - with optional basic auth
+      - "traefik.http.routers.openwebui-external.rule=Host(`openwebui.chrislee.dev`)"
+      - "traefik.http.routers.openwebui-external.entrypoints=web"
+      - "traefik.http.routers.openwebui-external.middlewares=${EXTERNAL_MIDDLEWARES:-auth@file}"
+      - "traefik.http.routers.openwebui-external.service=openwebui"
+      # Local route - no auth
+      - "traefik.http.routers.openwebui-local.rule=Host(`openwebui.localhost`)"
+      - "traefik.http.routers.openwebui-local.entrypoints=web"
+      - "traefik.http.routers.openwebui-local.service=openwebui"
+      # Service definition
+      - "traefik.http.services.openwebui.loadbalancer.server.port=8080"
+
+  # LM Studio API Proxy - exposes host LLM through Traefik
+  lmstudio-proxy:
+    image: nginx:alpine
+    container_name: lmstudio-proxy
+    restart: unless-stopped
+    volumes:
+      - ./lmstudio-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      # External route (via Cloudflare) - with optional basic auth
+      - "traefik.http.routers.lmstudio-external.rule=Host(`lmstudio.chrislee.dev`)"
+      - "traefik.http.routers.lmstudio-external.entrypoints=web"
+      - "traefik.http.routers.lmstudio-external.middlewares=${EXTERNAL_MIDDLEWARES:-auth@file}"
+      - "traefik.http.routers.lmstudio-external.service=lmstudio"
+      # Local route - no auth
+      - "traefik.http.routers.lmstudio-local.rule=Host(`lmstudio.localhost`)"
+      - "traefik.http.routers.lmstudio-local.entrypoints=web"
+      - "traefik.http.routers.lmstudio-local.service=lmstudio"
+      # Service definition
+      - "traefik.http.services.lmstudio.loadbalancer.server.port=80"
+
+networks:
+  web:
+    driver: bridge

@@ -1,0 +1,29 @@
+# Cloudflare Tunnel Configuration
+#
+# SETUP INSTRUCTIONS:
+# 1. Go to https://one.dash.cloudflare.com/
+# 2. Navigate to: Networks -> Tunnels
+# 3. Create a new tunnel and copy the token
+# 4. Add the token to your .env file as CLOUDFLARE_TUNNEL_TOKEN
+# 5. In the tunnel's Public Hostname settings, add:
+#    - openwebui.chrislee.dev -> http://traefik:80
+#    - lmstudio.chrislee.dev -> http://traefik:80
+
+tunnel: your-tunnel-id-here
+credentials-file: /etc/cloudflared/credentials.json
+
+ingress:
+  # Route openwebui.chrislee.dev to Traefik
+  - hostname: openwebui.chrislee.dev
+    service: http://traefik:80
+    originRequest:
+      noTLSVerify: true
+
+  # Route lmstudio.chrislee.dev to Traefik
+  - hostname: lmstudio.chrislee.dev
+    service: http://traefik:80
+    originRequest:
+      noTLSVerify: true
+
+  # Catch-all rule (required)
+  - service: http_status:404

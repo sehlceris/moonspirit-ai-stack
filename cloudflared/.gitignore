@@ -1,0 +1,4 @@
+# Cloudflared credentials and runtime files
+*.json
+*.pem
+*.log
