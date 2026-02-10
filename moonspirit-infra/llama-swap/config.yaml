@@ -1,0 +1,67 @@
+# llama-swap configuration for moonspirit-infra
+# See: https://github.com/mostlygeek/llama-swap/wiki/Configuration
+
+# Health check timeout in seconds for upstream llama-server readiness.
+# Large models take longer to load; 600s = 10 minutes is generous for ~63GB.
+healthCheckTimeout: 600
+
+# Log settings
+logLevel: info
+logToStdout: "proxy"
+
+# Port range that llama-swap assigns to upstream llama-server instances.
+startPort: 10001
+
+# Show a "loading" SSE message to clients while a model is booting.
+sendLoadingState: true
+
+# Macros for shared paths / values
+macros:
+  "llama_server": "/opt/homebrew/bin/llama-server"
+  "models_dir": "./models"
+
+models:
+  # ---------------------------------------------------------------
+  # OpenAI gpt-oss-120b  (MXFP4 quantization, ~63 GB)
+  # MoE: 117B total params, 5.1B active — fast inference for its size.
+  # ---------------------------------------------------------------
+  "gpt-oss-120b":
+    cmd: >
+      ${llama_server}
+      --port ${PORT}
+      --model ${models_dir}/gpt-oss-120b-GGUF/gpt-oss-120b-mxfp4-00001-of-00003.gguf
+      --ctx-size 8192
+      --n-gpu-layers 999
+      --flash-attn on
+      --jinja
+      --mlock
+
+    # TTL 0 = never auto-unload. The model stays resident until manually
+    # unloaded or llama-swap shuts down. Change this if you want automatic
+    # eviction after idle time (value is in seconds, e.g. ttl: 300 = 5 min).
+    ttl: 0
+
+    # Friendly aliases so OpenAI-compatible clients can use familiar names.
+    aliases:
+      - "gpt-oss"
+      - "gpt-oss-120b-mxfp4"
+      - "openai/gpt-oss-120b"
+
+# To add more models, copy the block above and adjust the cmd and aliases.
+# Example for a smaller model:
+#
+#  "mistral-7b":
+#    cmd: >
+#      ${llama_server}
+#      --port ${PORT}
+#      --model ${models_dir}/mistral-7b-instruct-v0.3.Q4_K_M.gguf
+#      --ctx-size 32768
+#      --n-gpu-layers 999
+#      --flash-attn on
+#    ttl: 0
+#    aliases:
+#      - "mistral"
+#
+# When a request arrives for a model not currently loaded, llama-swap will
+# stop the running model and start the requested one (swap). To run multiple
+# models simultaneously, use groups — see the llama-swap wiki.

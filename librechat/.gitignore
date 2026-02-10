@@ -1,9 +1,0 @@
-# Ignore runtime data
-data-node/
-images/*
-logs/*
-
-# Keep directory structure
-!.gitkeep
-librechat.yaml
-!librechat.yaml.example

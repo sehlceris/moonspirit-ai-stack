@@ -1,0 +1,6 @@
+# Model files (large, downloaded via scripts/download-model.sh)
+models/
+
+# Runtime files
+llama-swap.log
+llama-swap.pid

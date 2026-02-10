@@ -1,4 +1,0 @@
-# OpenWebUI persistent data (users, chats, uploads)
-# Keep directory structure but ignore contents
-data/*
-!data/.gitkeep
