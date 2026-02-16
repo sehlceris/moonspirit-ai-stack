@@ -1,0 +1,16 @@
+{
+  "name": "llama-swap",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "proxy": "tsx proxy.ts",
+    "test:inference": "tsx test-inference.ts",
+    "test:streaming": "tsx test-streaming.ts",
+    "test:all": "tsx test-inference.ts && tsx test-streaming.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.3",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

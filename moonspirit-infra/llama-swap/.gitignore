@@ -4,3 +4,7 @@ models/
 # Runtime files
 llama-swap.log
 llama-swap.pid
+
+# Node
+node_modules/
+dist/
