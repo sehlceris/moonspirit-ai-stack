@@ -28,18 +28,18 @@ download_if_missing \
     "nomic-ai/nomic-embed-text-v1.5-GGUF" \
     --include "nomic-embed-text-v1.5.f16.gguf"
 
-# GLM-4.7-Flash — 30B MoE, 3B active (Q4_K_M, ~18 GB)
+# GLM-4.7-Flash — 30B MoE, 3B active (UD-Q4_K_XL, ~17.5 GB)
 download_if_missing \
-    "zai-org_GLM-4.7-Flash-GGUF" \
-    "bartowski/zai-org_GLM-4.7-Flash-GGUF" \
-    --include "zai-org_GLM-4.7-Flash-Q4_K_M.gguf"
+    "GLM-4.7-Flash-GGUF" \
+    "unsloth/GLM-4.7-Flash-GGUF" \
+    --include "GLM-4.7-Flash-UD-Q4_K_XL.gguf"
 
 # gpt-oss-120b — 117B MoE, 5.1B active (MXFP4, ~63 GB)
 download_if_missing \
     "gpt-oss-120b-GGUF" \
     "ggml-org/gpt-oss-120b-GGUF"
 
-# Qwen3-Coder-Next — 80B MoE, 3B active (Q4_K_M, ~48 GB)
+# Qwen3-Coder-Next — 80B MoE, 3B active (Q4_K_M, ~48.5 GB)
 download_if_missing \
     "Qwen3-Coder-Next-GGUF" \
     "Qwen/Qwen3-Coder-Next-GGUF" \

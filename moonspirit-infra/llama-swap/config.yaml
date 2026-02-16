@@ -40,7 +40,7 @@ models:
     cmd: >
       ${llama_server}
       --port ${PORT}
-      --model ${models_dir}/zai-org_GLM-4.7-Flash-GGUF/zai-org_GLM-4.7-Flash-Q4_K_M.gguf
+      --model ${models_dir}/GLM-4.7-Flash-GGUF/GLM-4.7-Flash-UD-Q4_K_XL.gguf
       --ctx-size 131072
       --n-gpu-layers 999
       --flash-attn on
