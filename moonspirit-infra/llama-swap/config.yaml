@@ -26,7 +26,7 @@ models:
       ${llama_server}
       --port ${PORT}
       --model ${models_dir}/gpt-oss-120b-GGUF/gpt-oss-120b-mxfp4-00001-of-00003.gguf
-      --ctx-size 8192
+      --ctx-size 98304
       --n-gpu-layers 999
       --flash-attn on
       --jinja
@@ -41,7 +41,7 @@ models:
       ${llama_server}
       --port ${PORT}
       --model ${models_dir}/zai-org_GLM-4.7-Flash-GGUF/zai-org_GLM-4.7-Flash-Q4_K_M.gguf
-      --ctx-size 8192
+      --ctx-size 131072
       --n-gpu-layers 999
       --flash-attn on
       --jinja
@@ -56,7 +56,7 @@ models:
       ${llama_server}
       --port ${PORT}
       --model ${models_dir}/Qwen3-Coder-Next-GGUF/Qwen3-Coder-Next-Q4_K_M-00001-of-00004.gguf
-      --ctx-size 32768
+      --ctx-size 131072
       --n-gpu-layers 999
       --flash-attn on
       --jinja
