@@ -1,6 +1,6 @@
 # Local LLM Server Setup
 
-Run gpt-oss-120b locally on macOS Apple Silicon via llama.cpp, llama-swap, and an auth proxy.
+Run local LLMs and embeddings on macOS Apple Silicon via llama.cpp, llama-swap, and an auth proxy.
 
 ## Architecture
 
@@ -18,8 +18,8 @@ Client -> proxy.ts (:3000, auth) -> llama-swap (:8080, model routing) -> llama-s
 
 - macOS Apple Silicon (M1/M2/M3/M4)
 - Homebrew, Node.js (for proxy and tests)
-- 80 GB+ unified memory (128 GB recommended for gpt-oss-120b)
-- ~70 GB free disk space
+- 80 GB+ unified memory (128 GB recommended)
+- ~150 GB free disk space (all default models)
 
 ## Setup
 
@@ -31,13 +31,14 @@ brew tap mostlygeek/llama-swap && brew install llama-swap
 brew install huggingface-cli
 ```
 
-### 2. Download the model
+### 2. Download models
 
 ```bash
-./scripts/download-model.sh ggml-org/gpt-oss-120b-GGUF
+./scripts/download-default-models.sh    # all default models (~130 GB total)
+./scripts/download-model.sh <hf-repo>   # or download individually
 ```
 
-Downloads MXFP4 GGUF (~63 GB, 3 split files) into `models/gpt-oss-120b-GGUF/`.
+Skips models already downloaded. See [Default Models](#default-models) for the full list.
 
 ### 3. Install Node dependencies
 
@@ -99,42 +100,34 @@ llama-swap/
 │   ├── start.sh               # Start both services
 │   ├── stop.sh                # Stop both services
 │   ├── autostart-install.sh   # Enable launch-on-login
-│   ├── autostart-uninstall.sh # Disable launch-on-login
-│   └── download-model.sh
+│   ├── autostart-uninstall.sh   # Disable launch-on-login
+│   ├── download-default-models.sh # Download all default models
+│   └── download-model.sh         # Download a single HF model
 ├── models/                  # gitignored, ~63 GB
 └── node_modules/            # gitignored
 ```
 
-## Model: gpt-oss-120b
+## Default Models
 
-| Attribute | Value |
-|-----------|-------|
-| Parameters | 117B total, 5.1B active (MoE: 128 experts, 4 active/token) |
-| Quantization | MXFP4 (native training precision) |
-| Size on disk | ~63 GB (3 split files) |
-| Context | Up to 128k tokens (default: 8192 in config) |
-| Type | Reasoning model |
+LLMs swap — one loaded at a time. Embeddings run in a separate group alongside the active LLM.
 
-MoE means inference speed is closer to a 7B model despite 117B total params.
+| Model | Type | Params (total/active) | Quant | Size | Context |
+|-------|------|-----------------------|-------|------|---------|
+| [gpt-oss-120b](https://huggingface.co/ggml-org/gpt-oss-120b-GGUF) | Reasoning LLM | 117B / 5.1B (MoE) | MXFP4 | ~63 GB | 128k |
+| [GLM-4.7-Flash](https://huggingface.co/bartowski/zai-org_GLM-4.7-Flash-GGUF) | General LLM | 30B / 3B (MoE) | Q4_K_M | ~18 GB | 128k |
+| [Qwen3-Coder-Next](https://huggingface.co/Qwen/Qwen3-Coder-Next-GGUF) | Coding LLM | 80B / 3B (MoE) | Q4_K_M | ~48 GB | 256k |
+| [nomic-embed-text-v1.5](https://huggingface.co/nomic-ai/nomic-embed-text-v1.5-GGUF) | Embeddings | 137M | f16 | ~274 MB | 8k |
+
+MoE models only activate a fraction of parameters per token, so inference speed is much faster than their total param count suggests.
 
 ## Operations
 
 ```bash
-# Check running models
-curl http://127.0.0.1:8080/running
-
-# Unload model
-curl -X POST http://127.0.0.1:8080/models/unload
-
-# Web dashboard
-open http://127.0.0.1:8080/ui
-
-# Download additional models
-./scripts/download-model.sh <hf-repo>
-./scripts/download-model.sh bartowski/openai_gpt-oss-120b-GGUF --include "openai_gpt-oss-120b-Q4_K_M/*"
-
-# Upgrade
-brew upgrade llama.cpp llama-swap
+curl http://127.0.0.1:8080/running                     # check loaded models
+curl -X POST http://127.0.0.1:8080/models/unload       # unload current model
+open http://127.0.0.1:8080/ui                           # web dashboard
+./scripts/download-model.sh <hf-repo> [--include PAT]   # download a model
+brew upgrade llama.cpp llama-swap                        # upgrade
 ```
 
 ## Autostart on Login
