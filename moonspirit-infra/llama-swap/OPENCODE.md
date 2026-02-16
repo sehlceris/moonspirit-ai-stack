@@ -27,21 +27,21 @@ Add this to your project's `opencode.json` (or create one):
           "name": "GPT-OSS 120B (Reasoning)",
           "limit": {
             "context": 98304,
-            "output": 4096
+            "output": 65536
           }
         },
         "glm-4.7-flash": {
           "name": "GLM 4.7 Flash (General)",
           "limit": {
             "context": 131072,
-            "output": 4096
+            "output": 65536
           }
         },
         "qwen3-coder-next": {
           "name": "Qwen3 Coder Next (Coding)",
           "limit": {
             "context": 131072,
-            "output": 4096
+            "output": 65536
           }
         }
       }
