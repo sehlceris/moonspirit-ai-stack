@@ -54,6 +54,7 @@ const authenticate = (req: http.IncomingMessage): boolean => {
 };
 
 const sendJson = (res: http.ServerResponse, status: number, body: object) => {
+  if (res.headersSent || res.writableEnded) return;
   const payload = JSON.stringify(body);
   res.writeHead(status, { "Content-Type": "application/json" });
   res.end(payload);
@@ -89,18 +90,45 @@ const server = http.createServer((req, res) => {
     },
     (proxyRes) => {
       res.writeHead(proxyRes.statusCode ?? 502, proxyRes.headers);
+      proxyRes.on("error", (err) => {
+        console.error(`Upstream response error: ${err.message}`);
+        res.destroy();
+      });
       proxyRes.pipe(res);
     },
   );
 
-  proxyReq.on("error", () => {
+  proxyReq.on("error", (err) => {
+    console.error(`Upstream request error: ${err.message}`);
     sendJson(res, 502, { error: "Bad Gateway" });
+  });
+
+  res.on("error", (err) => {
+    console.error(`Client response error: ${err.message}`);
+    proxyReq.destroy();
+  });
+
+  req.on("error", (err) => {
+    console.error(`Client request error: ${err.message}`);
+    proxyReq.destroy();
   });
 
   // Stream request body to upstream
   req.pipe(proxyReq);
 });
 
+server.on("error", (err) => {
+  console.error(`Server error: ${err.message}`);
+});
+
 server.listen(PROXY_PORT, "0.0.0.0", () => {
   console.log(`Proxy listening on 0.0.0.0:${PROXY_PORT} -> ${UPSTREAM_URL} [${apiKeys.size} key(s)]`);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error(`Uncaught exception: ${err.message}`);
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error(`Unhandled rejection: ${reason}`);
 });
