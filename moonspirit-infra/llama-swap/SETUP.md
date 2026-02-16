@@ -96,8 +96,10 @@ llama-swap/
 ├── package.json
 ├── tsconfig.json
 ├── scripts/
-│   ├── start.sh             # Start both services
-│   ├── stop.sh              # Stop both services
+│   ├── start.sh               # Start both services
+│   ├── stop.sh                # Stop both services
+│   ├── autostart-install.sh   # Enable launch-on-login
+│   ├── autostart-uninstall.sh # Disable launch-on-login
 │   └── download-model.sh
 ├── models/                  # gitignored, ~63 GB
 └── node_modules/            # gitignored
@@ -133,6 +135,16 @@ open http://127.0.0.1:8080/ui
 
 # Upgrade
 brew upgrade llama.cpp llama-swap
+```
+
+## Autostart on Login
+
+Opens the stack in a Terminal window on login (macOS LaunchAgent). Ctrl+C in that window stops both services.
+
+```bash
+./scripts/autostart-install.sh     # enable
+./scripts/autostart-uninstall.sh   # disable
+launchctl start com.moonspirit.llama-swap  # trigger now without rebooting
 ```
 
 ## Notes
