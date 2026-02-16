@@ -101,6 +101,6 @@ const server = http.createServer((req, res) => {
   req.pipe(proxyReq);
 });
 
-server.listen(PROXY_PORT, () => {
-  console.log(`Proxy listening on :${PROXY_PORT} -> ${UPSTREAM_URL} [${apiKeys.size} key(s)]`);
+server.listen(PROXY_PORT, "0.0.0.0", () => {
+  console.log(`Proxy listening on 0.0.0.0:${PROXY_PORT} -> ${UPSTREAM_URL} [${apiKeys.size} key(s)]`);
 });

@@ -45,31 +45,36 @@ Downloads MXFP4 GGUF (~63 GB, 3 split files) into `models/gpt-oss-120b-GGUF/`.
 npm install
 ```
 
-### 4. Start llama-swap
+### 4. Configure API keys
+
+Copy the example and add your keys:
 
 ```bash
-./scripts/start-server.sh          # foreground
-./scripts/start-server.sh --bg     # background (logs to llama-swap.log)
-./scripts/stop-server.sh           # stop background instance
+cp config.example.json config.json
 ```
 
-### 5. Start the auth proxy
-
-```bash
-npx tsx proxy.ts
-```
-
-| Env var | Default | Description |
-|---------|---------|-------------|
-| `PROXY_PORT` | `3000` | Proxy listen port |
-| `UPSTREAM_URL` | `http://127.0.0.1:8080` | llama-swap URL |
-| `API_KEYS` | — | Comma-separated keys (fallback if no config.json) |
-
-API keys via `config.json` (takes priority over env var):
+Edit `config.json`:
 
 ```json
-{ "apiKeys": ["key1", "key2"] }
+{ "apiKeys": ["your-key-here"] }
 ```
+
+Alternatively, set `API_KEYS=key1,key2` env var (config.json takes priority).
+
+### 5. Start the stack
+
+```bash
+./scripts/start.sh          # foreground (Ctrl+C stops both)
+./scripts/start.sh --bg     # background (logs to llama-swap.log, proxy.log)
+./scripts/stop.sh           # stop both background processes
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--port PORT` | `8080` | llama-swap port (127.0.0.1 only) |
+| `--proxy-port PORT` | `3000` | Auth proxy port (0.0.0.0) |
+| `--bg` | — | Run in background |
+| `--no-watch` | — | Don't auto-reload config.yaml on change |
 
 ### 6. Test
 
@@ -83,16 +88,17 @@ npx tsx test-streaming.ts    # streaming completion
 ```
 llama-swap/
 ├── config.yaml              # llama-swap model config
-├── config.json              # API keys for proxy
+├── config.example.json      # API keys template (copy to config.json)
+├── config.json              # API keys (gitignored)
 ├── proxy.ts                 # Auth proxy (port 3000)
 ├── test-inference.ts        # Inference test script
 ├── test-streaming.ts        # Streaming test script
 ├── package.json
 ├── tsconfig.json
 ├── scripts/
-│   ├── download-model.sh
-│   ├── start-server.sh
-│   └── stop-server.sh
+│   ├── start.sh             # Start both services
+│   ├── stop.sh              # Stop both services
+│   └── download-model.sh
 ├── models/                  # gitignored, ~63 GB
 └── node_modules/            # gitignored
 ```

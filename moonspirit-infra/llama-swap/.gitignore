@@ -1,9 +1,14 @@
 # Model files (large, downloaded via scripts/download-model.sh)
 models/
 
+# Config with secrets
+config.json
+
 # Runtime files
 llama-swap.log
 llama-swap.pid
+proxy.log
+proxy.pid
 
 # Node
 node_modules/
