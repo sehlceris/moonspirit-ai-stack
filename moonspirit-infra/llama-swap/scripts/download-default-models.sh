@@ -42,7 +42,7 @@ download_if_missing \
 # Qwen3-Coder-Next — 80B MoE, 3B active (Q4_K_M, ~48.5 GB)
 download_if_missing \
     "Qwen3-Coder-Next-GGUF" \
-    "Qwen/Qwen3-Coder-Next-GGUF" \
-    --include "Qwen3-Coder-Next-Q4_K_M/*"
+    "unsloth/Qwen3-Coder-Next-GGUF" \
+    --include "Qwen3-Coder-Next-Q4_K_M.gguf"
 
 echo "=== Done ==="
