@@ -4,220 +4,288 @@ const PROXY_URL = process.env.PROXY_URL ?? "http://127.0.0.1:3000";
 const API_KEY = process.env.API_KEY ?? "test-key-1";
 const MODEL = "gpt-oss-120b";
 
-// --- Unit test: verify sanitization logic in isolation ---
+// --- Unit test: mirror the sanitization logic from proxy.ts ---
 
-type Message = {
-  role: string;
-  content?: string;
-  thinking?: string;
-  tool_calls?: { id: string; type: string; function: { name: string; arguments: string } }[];
-  tool_call_id?: string;
-};
+type Message = Record<string, unknown>;
 
 const sanitizeMessages = (messages: Message[]): Message[] => {
   for (const msg of messages) {
-    if (
-      msg.role === "assistant" &&
-      msg.tool_calls &&
-      msg.thinking &&
-      msg.content
-    ) {
-      msg.content = msg.thinking + "\n\n" + msg.content;
-      delete msg.thinking;
-    }
+    if (msg.role !== "assistant" || !msg.tool_calls) continue;
+
+    const hasThinking = msg.thinking != null;
+    const hasReasoning = msg.reasoning_content != null;
+    if (!hasThinking && !hasReasoning) continue;
+
+    const content = typeof msg.content === "string" ? (msg.content as string) : "";
+    if (!content) continue; // no conflict when content is empty
+
+    delete msg.thinking;
+    delete msg.reasoning_content;
   }
   return messages;
+};
+
+const tool_calls = [
+  { id: "call_1", type: "function", function: { name: "get_weather", arguments: '{"city":"NYC"}' } },
+];
+
+let failures = 0;
+
+const check = (label: string, ok: boolean, detail?: string) => {
+  console.log(`  [${ok ? "PASS" : "FAIL"}] ${label}`);
+  if (!ok) {
+    failures++;
+    if (detail) console.log(`    ${detail}`);
+  }
 };
 
 const unitTests = () => {
   console.log("=== Unit tests: sanitizeMessages ===\n");
 
-  // Test 1: assistant with thinking + content + tool_calls -> merge
+  // 1: thinking + content + tool_calls -> drop thinking, keep content
   {
     const msgs: Message[] = [
-      {
-        role: "assistant",
-        thinking: "Let me analyze this.",
-        content: "I'll look up the weather.",
-        tool_calls: [
-          {
-            id: "call_1",
-            type: "function",
-            function: { name: "get_weather", arguments: '{"city":"NYC"}' },
-          },
-        ],
-      },
+      { role: "assistant", thinking: "Analysis.", content: "Action.", tool_calls },
     ];
     sanitizeMessages(msgs);
-    const ok =
-      msgs[0].content === "Let me analyze this.\n\nI'll look up the weather." &&
-      msgs[0].thinking === undefined &&
-      msgs[0].tool_calls !== undefined;
-    console.log(`  [${ok ? "PASS" : "FAIL"}] Merges thinking into content when tool_calls present`);
-    if (!ok) {
-      console.log(`    content: ${JSON.stringify(msgs[0].content)}`);
-      console.log(`    thinking: ${JSON.stringify(msgs[0].thinking)}`);
-    }
+    check(
+      "thinking + content + tool_calls -> drops thinking",
+      msgs[0].content === "Action." &&
+        msgs[0].thinking === undefined,
+      `content=${JSON.stringify(msgs[0].content)} thinking=${JSON.stringify(msgs[0].thinking)}`,
+    );
   }
 
-  // Test 2: assistant with thinking + content but NO tool_calls -> no change
+  // 2: reasoning_content + content + tool_calls -> drop reasoning_content, keep content
   {
     const msgs: Message[] = [
-      {
-        role: "assistant",
-        thinking: "Reasoning here.",
-        content: "Final answer.",
-      },
+      { role: "assistant", reasoning_content: "Analysis.", content: "Action.", tool_calls },
     ];
     sanitizeMessages(msgs);
-    const ok = msgs[0].thinking === "Reasoning here." && msgs[0].content === "Final answer.";
-    console.log(`  [${ok ? "PASS" : "FAIL"}] Leaves non-tool-call messages unchanged`);
+    check(
+      "reasoning_content + content + tool_calls -> drops reasoning_content",
+      msgs[0].content === "Action." &&
+        msgs[0].reasoning_content === undefined,
+      `content=${JSON.stringify(msgs[0].content)} reasoning_content=${JSON.stringify(msgs[0].reasoning_content)}`,
+    );
   }
 
-  // Test 3: assistant with only content + tool_calls (no thinking) -> no change
+  // 3: reasoning_content + empty content + tool_calls -> no conflict, leave as-is
   {
     const msgs: Message[] = [
-      {
-        role: "assistant",
-        content: "Calling tool.",
-        tool_calls: [
-          {
-            id: "call_2",
-            type: "function",
-            function: { name: "search", arguments: '{"q":"test"}' },
-          },
-        ],
-      },
+      { role: "assistant", reasoning_content: "Analysis.", content: "", tool_calls },
     ];
     sanitizeMessages(msgs);
-    const ok = msgs[0].content === "Calling tool." && msgs[0].thinking === undefined;
-    console.log(`  [${ok ? "PASS" : "FAIL"}] No change when thinking is absent`);
+    check(
+      "reasoning_content + empty content + tool_calls -> left as-is (no conflict)",
+      msgs[0].content === "" &&
+        msgs[0].reasoning_content === "Analysis.",
+      `content=${JSON.stringify(msgs[0].content)} reasoning_content=${JSON.stringify(msgs[0].reasoning_content)}`,
+    );
   }
 
-  // Test 4: user messages are never touched
+  // 4: only reasoning_content + tool_calls (no content key at all) -> no conflict, leave as-is
   {
     const msgs: Message[] = [
-      { role: "user", content: "Hello", thinking: "hmm" } as any,
+      { role: "assistant", reasoning_content: "Analysis.", tool_calls },
     ];
     sanitizeMessages(msgs);
-    const ok = (msgs[0] as any).thinking === "hmm";
-    console.log(`  [${ok ? "PASS" : "FAIL"}] User messages are not modified`);
+    check(
+      "reasoning_content + tool_calls (no content key) -> left as-is",
+      msgs[0].reasoning_content === "Analysis." &&
+        msgs[0].content === undefined,
+    );
+  }
+
+  // 5: only content + tool_calls (no reasoning) -> no change
+  {
+    const msgs: Message[] = [
+      { role: "assistant", content: "Calling tool.", tool_calls },
+    ];
+    sanitizeMessages(msgs);
+    check(
+      "content + tool_calls, no reasoning -> unchanged",
+      msgs[0].content === "Calling tool." &&
+        msgs[0].thinking === undefined &&
+        msgs[0].reasoning_content === undefined,
+    );
+  }
+
+  // 6: thinking + content but NO tool_calls -> no change
+  {
+    const msgs: Message[] = [
+      { role: "assistant", thinking: "Reasoning.", content: "Answer." },
+    ];
+    sanitizeMessages(msgs);
+    check(
+      "thinking + content, no tool_calls -> unchanged",
+      msgs[0].thinking === "Reasoning." && msgs[0].content === "Answer.",
+    );
+  }
+
+  // 7: user messages never touched
+  {
+    const msgs: Message[] = [
+      { role: "user", content: "Hello", reasoning_content: "hmm" },
+    ];
+    sanitizeMessages(msgs);
+    check("user messages -> unchanged", msgs[0].reasoning_content === "hmm");
   }
 
   console.log("");
 };
 
-// --- Integration test: send the problematic payload through the live proxy ---
+// --- Integration tests: send problematic payloads through the live proxy ---
 
-const integrationTest = () => {
-  console.log("=== Integration test: proxy + llama.cpp ===\n");
+const sendRequest = (
+  label: string,
+  messages: Message[],
+): Promise<void> =>
+  new Promise((resolve, reject) => {
+    const payload = JSON.stringify({
+      model: MODEL,
+      messages,
+      stream: false,
+      max_tokens: 200,
+    });
 
-  // This payload mimics what OpenCode sends: an assistant message with
-  // thinking + content + tool_calls, followed by a tool result, then
-  // a user message continuing the conversation.
-  const messages = [
+    const url = new URL("/v1/chat/completions", PROXY_URL);
+
+    const req = http.request(
+      {
+        hostname: url.hostname,
+        port: url.port,
+        path: url.pathname,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${API_KEY}`,
+          "Content-Length": Buffer.byteLength(payload),
+        },
+      },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on("data", (c: Buffer) => chunks.push(c));
+        res.on("end", () => {
+          const raw = Buffer.concat(chunks).toString();
+          const status = res.statusCode ?? 0;
+
+          if (status !== 200) {
+            if (raw.includes("Cannot pass both content and thinking")) {
+              console.error(`  [FAIL] ${label}: Jinja raise_exception (HTTP ${status})`);
+            } else {
+              console.error(`  [FAIL] ${label}: HTTP ${status}`);
+              console.error(`    ${raw.slice(0, 300)}`);
+            }
+            failures++;
+            resolve();
+            return;
+          }
+
+          let body: any;
+          try {
+            body = JSON.parse(raw);
+          } catch {
+            console.error(`  [FAIL] ${label}: invalid JSON response`);
+            failures++;
+            resolve();
+            return;
+          }
+
+          const msg = body.choices?.[0]?.message;
+          const content = msg?.content ?? "";
+          console.log(`  [PASS] ${label} -> "${content.slice(0, 80)}${content.length > 80 ? "..." : ""}"`);
+          resolve();
+        });
+      },
+    );
+
+    req.on("error", (err) => {
+      console.error(`  [FAIL] ${label}: ${err.message}`);
+      failures++;
+      resolve();
+    });
+
+    req.write(payload);
+    req.end();
+  });
+
+const integrationTests = async () => {
+  console.log("=== Integration tests: proxy + llama.cpp ===\n");
+
+  // Test A: thinking + content + tool_calls (original bug)
+  await sendRequest("thinking + content + tool_calls", [
     { role: "user", content: "What is the weather in New York?" },
     {
       role: "assistant",
-      thinking: "The user wants weather info. I should use the get_weather tool.",
-      content: "Let me check the weather for you.",
+      thinking: "I should use the weather tool.",
+      content: "Let me check.",
       tool_calls: [
         {
-          id: "call_abc123",
+          id: "call_abc",
           type: "function",
-          function: {
-            name: "get_weather",
-            arguments: JSON.stringify({ city: "New York" }),
-          },
+          function: { name: "get_weather", arguments: '{"city":"New York"}' },
         },
       ],
     },
+    { role: "tool", tool_call_id: "call_abc", content: '{"temp":"72F","condition":"sunny"}' },
+    { role: "user", content: "Summarize in one sentence." },
+  ]);
+
+  // Test B: reasoning_content + empty content + tool_calls (the actual OpenCode pattern)
+  await sendRequest("reasoning_content + empty content + tool_calls", [
+    { role: "user", content: "What is the weather in New York?" },
     {
-      role: "tool",
-      tool_call_id: "call_abc123",
-      content: JSON.stringify({ temp: "72F", condition: "sunny" }),
+      role: "assistant",
+      reasoning_content: "The user wants weather data. I'll call get_weather.",
+      content: "",
+      tool_calls: [
+        {
+          id: "call_xyz",
+          type: "function",
+          function: { name: "get_weather", arguments: '{"city":"New York"}' },
+        },
+      ],
     },
-    { role: "user", content: "Thanks! Summarize that in one sentence." },
-  ];
+    { role: "tool", tool_call_id: "call_xyz", content: '{"temp":"72F","condition":"sunny"}' },
+    { role: "user", content: "Summarize in one sentence." },
+  ]);
 
-  const payload = JSON.stringify({
-    model: MODEL,
-    messages,
-    stream: false,
-    max_tokens: 200,
-  });
-
-  const url = new URL("/v1/chat/completions", PROXY_URL);
-
-  const options: http.RequestOptions = {
-    hostname: url.hostname,
-    port: url.port,
-    path: url.pathname,
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${API_KEY}`,
-      "Content-Length": Buffer.byteLength(payload),
+  // Test C: reasoning_content + non-empty content + tool_calls
+  await sendRequest("reasoning_content + content + tool_calls", [
+    { role: "user", content: "What is the weather in New York?" },
+    {
+      role: "assistant",
+      reasoning_content: "Let me think about this.",
+      content: "I'll look that up.",
+      tool_calls: [
+        {
+          id: "call_def",
+          type: "function",
+          function: { name: "get_weather", arguments: '{"city":"New York"}' },
+        },
+      ],
     },
-  };
+    { role: "tool", tool_call_id: "call_def", content: '{"temp":"72F","condition":"sunny"}' },
+    { role: "user", content: "Summarize in one sentence." },
+  ]);
 
-  console.log(`Sending problematic payload to ${url.href}`);
-  console.log(`Model: ${MODEL}`);
-  console.log(`Payload has assistant message with thinking + content + tool_calls\n`);
+  // Test D: clean message (no reasoning fields) -> should still work
+  await sendRequest("clean messages (no reasoning)", [
+    { role: "user", content: "Say hello in exactly 5 words." },
+  ]);
 
-  const req = http.request(options, (res) => {
-    const chunks: Buffer[] = [];
-    res.on("data", (chunk: Buffer) => chunks.push(chunk));
-    res.on("end", () => {
-      const raw = Buffer.concat(chunks).toString();
-      const status = res.statusCode ?? 0;
-
-      if (status !== 200) {
-        // Check if this is the specific Jinja error
-        if (raw.includes("Cannot pass both content and thinking")) {
-          console.error(`FAIL: Got the Jinja raise_exception error (HTTP ${status})`);
-          console.error(`  The proxy sanitization did NOT work.`);
-          console.error(`  Response: ${raw.slice(0, 500)}`);
-        } else {
-          console.error(`FAIL: HTTP ${status}`);
-          console.error(`  Response: ${raw.slice(0, 500)}`);
-        }
-        process.exit(1);
-      }
-
-      let body: any;
-      try {
-        body = JSON.parse(raw);
-      } catch {
-        console.error(`FAIL: Response is not valid JSON:\n${raw.slice(0, 500)}`);
-        process.exit(1);
-      }
-
-      const msg = body.choices?.[0]?.message;
-      const content = msg?.content ?? "";
-      const reasoning = msg?.reasoning_content ?? "";
-
-      if (content.length === 0 && reasoning.length === 0) {
-        console.error(`FAIL: Empty response content: ${JSON.stringify(msg)}`);
-        process.exit(1);
-      }
-
-      console.log("HTTP 200 OK");
-      if (reasoning) console.log(`Reasoning: "${reasoning.slice(0, 150)}..."`);
-      console.log(`Content: "${content.slice(0, 200)}"`);
-      console.log(`\n--- PASS ---`);
-    });
-  });
-
-  req.on("error", (err) => {
-    console.error(`FAIL: Request error: ${err.message}`);
-    process.exit(1);
-  });
-
-  req.write(payload);
-  req.end();
+  console.log("");
 };
 
-// Run unit tests first, then integration
+// --- Run ---
+
 unitTests();
-integrationTest();
+
+integrationTests().then(() => {
+  if (failures > 0) {
+    console.log(`${failures} test(s) FAILED`);
+    process.exit(1);
+  }
+  console.log("--- ALL PASSED ---");
+});
