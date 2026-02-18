@@ -6,7 +6,8 @@
     "proxy": "tsx proxy.ts",
     "test:inference": "tsx test-inference.ts",
     "test:streaming": "tsx test-streaming.ts",
-    "test:all": "tsx test-inference.ts && tsx test-streaming.ts"
+    "test:embeddings": "tsx test-embeddings.ts",
+    "test:all": "tsx test-inference.ts && tsx test-streaming.ts && tsx test-embeddings.ts"
   },
   "devDependencies": {
     "@types/node": "^25.2.3",

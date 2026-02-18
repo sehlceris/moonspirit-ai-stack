@@ -60,25 +60,51 @@ const sendJson = (res: http.ServerResponse, status: number, body: object) => {
   res.end(payload);
 };
 
+// --- Message sanitization ---
+// Some chat templates (e.g. gpt-oss-120b) reject assistant messages that have
+// both `thinking` and `content` alongside `tool_calls`.  Merge thinking into
+// content so the template only sees one text field.
+
+const sanitizeMessages = (body: Record<string, unknown>): Record<string, unknown> => {
+  const messages = body.messages;
+  if (!Array.isArray(messages)) return body;
+
+  let modified = false;
+  for (const msg of messages) {
+    if (
+      msg.role === "assistant" &&
+      msg.tool_calls &&
+      msg.thinking &&
+      msg.content
+    ) {
+      msg.content = msg.thinking + "\n\n" + msg.content;
+      delete msg.thinking;
+      modified = true;
+    }
+  }
+
+  if (modified) {
+    console.log("Sanitized assistant messages: merged thinking into content");
+  }
+  return body;
+};
+
 // --- Proxy ---
 
 const upstream = new URL(UPSTREAM_URL);
 
-const server = http.createServer((req, res) => {
-  if (!authenticate(req)) {
-    sendJson(res, 401, { error: "Unauthorized" });
-    return;
-  }
+const isChatCompletions = (url: string | undefined): boolean =>
+  !!url && /\/v1\/chat\/completions\b/.test(url);
 
-  // Build forwarded headers, stripping hop-by-hop
-  const headers: http.OutgoingHttpHeaders = {};
-  for (const [key, value] of Object.entries(req.headers)) {
-    if (!HOP_BY_HOP.has(key.toLowerCase())) {
-      headers[key] = value;
-    }
+const forwardRequest = (
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  headers: http.OutgoingHttpHeaders,
+  body?: Buffer,
+) => {
+  if (body) {
+    headers["content-length"] = Buffer.byteLength(body);
   }
-  // Ensure Host matches the upstream target
-  headers.host = upstream.host;
 
   const proxyReq = http.request(
     {
@@ -103,6 +129,13 @@ const server = http.createServer((req, res) => {
     sendJson(res, 502, { error: "Bad Gateway" });
   });
 
+  res.on("close", () => {
+    if (!res.writableFinished) {
+      console.error("Client disconnected, aborting upstream request");
+      proxyReq.destroy();
+    }
+  });
+
   res.on("error", (err) => {
     console.error(`Client response error: ${err.message}`);
     proxyReq.destroy();
@@ -113,8 +146,47 @@ const server = http.createServer((req, res) => {
     proxyReq.destroy();
   });
 
-  // Stream request body to upstream
-  req.pipe(proxyReq);
+  if (body) {
+    proxyReq.end(body);
+  } else {
+    req.pipe(proxyReq);
+  }
+};
+
+const server = http.createServer((req, res) => {
+  if (!authenticate(req)) {
+    sendJson(res, 401, { error: "Unauthorized" });
+    return;
+  }
+
+  // Build forwarded headers, stripping hop-by-hop
+  const headers: http.OutgoingHttpHeaders = {};
+  for (const [key, value] of Object.entries(req.headers)) {
+    if (!HOP_BY_HOP.has(key.toLowerCase())) {
+      headers[key] = value;
+    }
+  }
+  headers.host = upstream.host;
+
+  // For chat completions, buffer the body so we can sanitize messages
+  if (isChatCompletions(req.url)) {
+    const chunks: Buffer[] = [];
+    req.on("data", (chunk: Buffer) => chunks.push(chunk));
+    req.on("end", () => {
+      try {
+        const raw = Buffer.concat(chunks).toString("utf-8");
+        const parsed = JSON.parse(raw);
+        const sanitized = sanitizeMessages(parsed);
+        const newBody = Buffer.from(JSON.stringify(sanitized), "utf-8");
+        forwardRequest(req, res, headers, newBody);
+      } catch {
+        // If we can't parse the body, forward as-is
+        forwardRequest(req, res, headers, Buffer.concat(chunks));
+      }
+    });
+  } else {
+    forwardRequest(req, res, headers);
+  }
 });
 
 server.on("error", (err) => {

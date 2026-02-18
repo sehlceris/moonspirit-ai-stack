@@ -57,8 +57,9 @@ cp config.example.json config.json   # then edit with your own keys
 ./scripts/start.sh --bg     # background mode
 
 # 6. Test
-npx tsx test-inference.ts   # non-streaming completion
-npx tsx test-streaming.ts   # streaming completion
+npx tsx test-inference.ts    # non-streaming completion
+npx tsx test-streaming.ts    # streaming completion
+npx tsx test-embeddings.ts   # embeddings
 ```
 
 ### start.sh flags
@@ -79,6 +80,7 @@ llama-swap/
 ├── config.example.json         # API keys template (copy to config.json)
 ├── test-inference.ts           # Non-streaming test
 ├── test-streaming.ts           # Streaming test
+├── test-embeddings.ts          # Embeddings test
 ├── scripts/
 │   ├── start.sh                # Start both services
 │   ├── stop.sh                 # Stop background services
@@ -89,18 +91,83 @@ llama-swap/
 └── models/                     # GGUF files (gitignored, ~130 GB)
 ```
 
-## Usage
+## API Endpoints
 
-Any OpenAI-compatible client works. Point it at `http://localhost:3000/v1` with a Bearer token from your `config.json`.
+All endpoints require a Bearer token from your `config.json` and are served at `http://localhost:3000/v1`.
+
+### LLM Chat Completions
+
+`POST /v1/chat/completions`
+
+Available models: `gpt-oss-120b`, `glm-4.7-flash`, `qwen3-coder-next` (and their aliases).
+
+**Streaming:**
 
 ```bash
 curl http://localhost:3000/v1/chat/completions \
   -H "Authorization: Bearer YOUR_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"model":"gpt-oss-120b","messages":[{"role":"user","content":"Hello"}],"stream":true}'
+  -d '{
+    "model": "gpt-oss-120b",
+    "messages": [{"role": "user", "content": "Hello"}],
+    "stream": true
+  }'
 ```
 
-### Operations
+**Non-streaming:**
+
+```bash
+curl http://localhost:3000/v1/chat/completions \
+  -H "Authorization: Bearer YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "glm-4.7-flash",
+    "messages": [{"role": "user", "content": "Explain quantum computing in one sentence."}],
+    "stream": false,
+    "max_tokens": 200
+  }'
+```
+
+### Embeddings
+
+`POST /v1/embeddings`
+
+Available models: `nomic-embed` (aliases: `nomic-embed-text`, `text-embedding-nomic`, `nomic-ai/nomic-embed-text-v1.5`).
+
+Returns 768-dimensional vectors. The embeddings model runs in a separate group, so it stays loaded alongside whichever LLM is active.
+
+```bash
+curl http://localhost:3000/v1/embeddings \
+  -H "Authorization: Bearer YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "nomic-embed",
+    "input": ["Hello, world!", "Embeddings are useful for semantic search."]
+  }'
+```
+
+Single string input also works:
+
+```bash
+curl http://localhost:3000/v1/embeddings \
+  -H "Authorization: Bearer YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "nomic-embed",
+    "input": "A single sentence to embed."
+  }'
+```
+
+### List Models
+
+`GET /v1/models`
+
+```bash
+curl http://localhost:3000/v1/models \
+  -H "Authorization: Bearer YOUR_KEY"
+```
+
+### Operations (localhost only)
 
 ```bash
 curl http://127.0.0.1:8080/running                   # check loaded model
@@ -125,7 +192,7 @@ See [OPENCODE.md](OPENCODE.md) for full setup. In short, add a `llama-swap` prov
 
 ### Any OpenAI-compatible tool
 
-Use base URL `http://localhost:3000/v1`, set your API key as the Bearer token, and use model names from `config.yaml` (e.g. `gpt-oss-120b`, `glm-4.7-flash`, `qwen3-coder-next`). Model aliases also work (e.g. `gpt-oss`, `qwen3-coder`).
+Use base URL `http://localhost:3000/v1`, set your API key as the Bearer token, and use model names from `config.yaml` (e.g. `gpt-oss-120b`, `glm-4.7-flash`, `qwen3-coder-next`). Model aliases also work (e.g. `gpt-oss`, `qwen3-coder`). For embeddings, use model `nomic-embed` with the `/v1/embeddings` endpoint.
 
 ## Autostart on Login
 
