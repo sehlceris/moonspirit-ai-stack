@@ -23,8 +23,8 @@ LLMs share a swap group (one loaded at a time). The embeddings model runs alongs
 | Model | Type | Params (total / active) | Quant | Size | Context |
 |-------|------|------------------------|-------|------|---------|
 | [gpt-oss-120b](https://huggingface.co/ggml-org/gpt-oss-120b-GGUF) | Reasoning | 117B / 5.1B (MoE) | MXFP4 | ~63 GB | 96k |
-| [GLM-4.7-Flash](https://huggingface.co/unsloth/GLM-4.7-Flash-GGUF) | General | 30B / 3B (MoE) | UD-Q4_K_XL | ~17.5 GB | 128k |
-| [Qwen3-Coder-Next](https://huggingface.co/unsloth/Qwen3-Coder-Next-GGUF) | Coding | 80B / 3B (MoE) | Q4_K_M | ~48.5 GB | 128k |
+| [GLM-4.7-Flash](https://huggingface.co/bartowski/zai-org_GLM-4.7-Flash-GGUF) | General | 30B / 3B (MoE) | Q6_K_L | ~23 GB | 128k |
+| [Qwen3-Coder-Next](https://huggingface.co/Qwen/Qwen3-Coder-Next-GGUF) | Coding | 80B / 3B (MoE) | Q6_K | ~65.5 GB | 128k |
 | [nomic-embed-text-v1.5](https://huggingface.co/nomic-ai/nomic-embed-text-v1.5-GGUF) | Embeddings | 137M | f16 | ~274 MB | 8k |
 
 All LLMs are Mixture-of-Experts — only a fraction of parameters activate per token, so inference is fast despite the large total sizes.

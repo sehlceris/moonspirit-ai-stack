@@ -114,8 +114,8 @@ LLMs swap — one loaded at a time. Embeddings run in a separate group alongside
 | Model | Type | Params (total/active) | Quant | Size | Context |
 |-------|------|-----------------------|-------|------|---------|
 | [gpt-oss-120b](https://huggingface.co/ggml-org/gpt-oss-120b-GGUF) | Reasoning LLM | 117B / 5.1B (MoE) | MXFP4 | ~63 GB | 128k |
-| [GLM-4.7-Flash](https://huggingface.co/unsloth/GLM-4.7-Flash-GGUF) | General LLM | 30B / 3B (MoE) | UD-Q4_K_XL | ~17.5 GB | 128k |
-| [Qwen3-Coder-Next](https://huggingface.co/unsloth/Qwen3-Coder-Next-GGUF) | Coding LLM | 80B / 3B (MoE) | Q4_K_M | ~48.5 GB | 256k |
+| [GLM-4.7-Flash](https://huggingface.co/bartowski/zai-org_GLM-4.7-Flash-GGUF) | General LLM | 30B / 3B (MoE) | Q6_K_L | ~23 GB | 128k |
+| [Qwen3-Coder-Next](https://huggingface.co/Qwen/Qwen3-Coder-Next-GGUF) | Coding LLM | 80B / 3B (MoE) | Q6_K | ~65.5 GB | 128k |
 | [nomic-embed-text-v1.5](https://huggingface.co/nomic-ai/nomic-embed-text-v1.5-GGUF) | Embeddings | 137M | f16 | ~274 MB | 8k |
 
 MoE models only activate a fraction of parameters per token, so inference speed is much faster than their total param count suggests.

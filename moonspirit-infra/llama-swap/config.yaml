@@ -51,7 +51,7 @@ models:
     ttl: 0
     aliases:
       - "glm-4.7"
-      - "zai-org/GLM-4.7-Flash"
+      - "z-ai/glm-4.7-flash"
 
   "qwen3-coder-next":
     cmd: >
@@ -67,7 +67,7 @@ models:
     ttl: 0
     aliases:
       - "qwen3-coder"
-      - "Qwen/Qwen3-Coder-Next"
+      - "qwen/qwen3-coder-next"
 
   # --- Embeddings (separate group — always available alongside LLM) ---
 

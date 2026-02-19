@@ -13,3 +13,10 @@ proxy.pid
 # Node
 node_modules/
 dist/
+
+# temp and local
+temp
+temp/
+local
+local/
+
