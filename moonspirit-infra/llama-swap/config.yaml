@@ -57,7 +57,7 @@ models:
     cmd: >
       ${llama_server}
       --port ${PORT}
-      --model ${models_dir}/Qwen3-Coder-Next-GGUF/Qwen3-Coder-Next-Q6_K/Qwen3-Coder-Next-Q6_K-00001-of-00004.gguf
+      --model ${models_dir}/Qwen_Qwen3-Coder-Next-GGUF/Qwen_Qwen3-Coder-Next-Q5_K_M/Qwen_Qwen3-Coder-Next-Q5_K_M-00001-of-00002.gguf
       --ctx-size 131072
       --n-gpu-layers 999
       --flash-attn on

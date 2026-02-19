@@ -28,21 +28,21 @@ download_if_missing \
     "nomic-ai/nomic-embed-text-v1.5-GGUF" \
     --include "nomic-embed-text-v1.5.f16.gguf"
 
-# GLM-4.7-Flash — 30B MoE, 3B active (UD-Q4_K_XL, ~17.5 GB)
+# GLM-4.7-Flash — 30B MoE, 3B active (Q6_K_L, ~23 GB)
 download_if_missing \
-    "GLM-4.7-Flash-GGUF" \
-    "unsloth/GLM-4.7-Flash-GGUF" \
-    --include "GLM-4.7-Flash-UD-Q4_K_XL.gguf"
+    "zai-org_GLM-4.7-Flash-GGUF" \
+    "bartowski/zai-org_GLM-4.7-Flash-GGUF" \
+    --include "zai-org_GLM-4.7-Flash-Q6_K_L.gguf"
 
 # gpt-oss-120b — 117B MoE, 5.1B active (MXFP4, ~63 GB)
 download_if_missing \
     "gpt-oss-120b-GGUF" \
     "ggml-org/gpt-oss-120b-GGUF"
 
-# Qwen3-Coder-Next — 80B MoE, 3B active (Q4_K_M, ~48.5 GB)
+# Qwen3-Coder-Next — 80B MoE, 3B active (Q5_K_M, 2 split files)
 download_if_missing \
-    "Qwen3-Coder-Next-GGUF" \
-    "unsloth/Qwen3-Coder-Next-GGUF" \
-    --include "Qwen3-Coder-Next-Q4_K_M.gguf"
+    "Qwen_Qwen3-Coder-Next-GGUF" \
+    "bartowski/Qwen_Qwen3-Coder-Next-GGUF" \
+    --include "Qwen_Qwen3-Coder-Next-Q5_K_M/*"
 
 echo "=== Done ==="
